@@ -1,0 +1,41 @@
+export class LoginDto {
+  email: string;
+  password: string;
+}
+export interface User {
+  id: number;
+  email: string;
+  password: string;
+  role: 'admin' | 'responsable' | 'auditor' | 'empleado';
+  companyId: number;
+}
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+
+@Injectable()
+export class AuthService {
+  private readonly users = [
+    {
+      id: 1,
+      email: 'admin@empresa.com',
+      password: '$2b$10$...hash...', // bcrypt.hashSync('123456', 10)
+      role: 'admin',
+      companyId: 1,
+    },
+  ];
+
+  constructor(private jwtService: JwtService) {}
+
+  async login(loginDto: LoginDto) {
+    const user = this.users.find(u => u.email === loginDto.email);
+    if (!user || !bcrypt.compareSync(loginDto.password, user.password)) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    const payload = { email: user.email, sub: user.id, role: user.role, companyId: user.companyId };
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
+  }
+}
